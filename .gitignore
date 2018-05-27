@@ -60,3 +60,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+### Jetbrains Folder ###
+.idea

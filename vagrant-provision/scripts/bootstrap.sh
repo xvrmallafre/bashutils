@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # Configurable Variables
-GITTEXTEDITOR='vim'
-GITNAME='John Doe' 
-GITEMAIL='john.doe@example.com'
+GITNAME=$1
+GITEMAIL=$2
+GITTEXTEDITOR=$3
 
 # Script Variables
 PHPMODSDIR='/etc/php/7.1/mods-available'
@@ -48,13 +48,7 @@ fi
 sudo chown -R vagrant:www-data /var/lock/apache2
 sudo a2dissite 000-default.conf
 sudo a2dissite default-ssl.conf
-sudo rm 
 sudo service apache2 reload
-if [ ! -h /var/www ];
-then
-    rm -rf /var/www
-    ln -fs /vagrant/project /var/www
-fi
 
 # Installing OpenSSL
 sudo apt-get install -y openssl

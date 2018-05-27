@@ -1,0 +1,16 @@
+# To apply changes use `vagrant reload`
+guest:
+    memory: 4096
+    cpus: 2
+    ip_address: "192.168.30.102"
+    forwarded_ssh_port: 3102
+    hostname: "mywebsite.localhost"
+
+host:
+    project_root: "./project"
+
+git:
+    name: "John Doe"
+    email: "john.doe@example.com"
+    # editor should be a valid text editor (vim, nano...)
+    editor: "vim"

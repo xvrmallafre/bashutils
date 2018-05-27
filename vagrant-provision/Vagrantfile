@@ -1,0 +1,50 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.require_version ">= 1.8"
+
+require 'yaml'
+
+module Config
+    def Config.load
+        local_config_dir = 'config'
+        config_file = local_config_dir + '/config.yaml'
+
+        config_data = File.exists?(config_file) ? YAML.load_file(config_file) : {}
+        return config_data
+    end
+end
+
+config_data = Config.load
+vm_memory = config_data["vm"]["memory"]
+vm_cpus = config_data["vm"]["cpus"]
+forwarded_ssh_port = config_data["vm"]["forwarded_ssh_port"]
+hostname = config_data['vm']['hostname']
+ip_address = config_data['vm']['ip_address']
+project_root = config_data['host']['project_root']
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.synced_folder project_root, "/var/www"
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = vm_memory
+    vb.cpus = vm_cpus
+  end
+
+  config.vm.provision "bootstrap", type: "shell", keep_color: true do |s|
+      s.path = "scripts/bootstrap.sh"
+      s.args = shell_script_args
+  end
+
+  # vagrant-hostmanager
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+  config.hostmanager.ignore_private_ip = false
+  config.hostmanager.include_offline = true
+  config.vm.define hostname do |node|
+      node.vm.hostname = hostname
+      node.vm.network :private_network, ip: ip_address
+      node.vm.network :forwarded_port, guest: 22, host: forwarded_ssh_port
+  end
+  config.ssh.guest_port = forwarded_ssh_port
+end
