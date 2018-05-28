@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-vagrant_dir=$PWD
 vagrant_plugin_list="$(vagrant plugin list)"
 
 if [ ! echo ${vagrant_plugin_list} | grep -q 'vagrant-hostmanager' ];

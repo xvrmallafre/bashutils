@@ -23,6 +23,12 @@ hostname = config_data['vm']['hostname']
 ip_address = config_data['vm']['ip_address']
 project_root = config_data['host']['project_root']
 
+shell_script_args = [
+    config_data['git']['name'],
+    config_data['git']['email'],
+    config_data['git']['editor']
+]
+
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
   config.vm.synced_folder project_root, "/var/www"
