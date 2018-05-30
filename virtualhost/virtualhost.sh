@@ -2,6 +2,37 @@
 ### Set Language
 TEXTDOMAIN=virtualhost
 
+for i in "$@"
+do
+case $i in
+    -a=*|--action=*)
+    action="${i#*=}"
+    shift # past argument=value
+    ;;
+    -d=*|--domain=*)
+    domain="${i#*=}"
+    shift # past argument=value
+    ;;
+	-D=*|--directory=*)
+    rootDir="${i#*=}"
+    shift # past argument with no value
+    ;;
+	-h=*|--help=*)
+    rootDir="${i#*=}"
+    shift # past argument with no value
+    ;;
+    *)
+          # unknown option
+    ;;
+esac
+done
+
+function printHelp () {
+
+
+	exit 0
+}
+
 ### Set default parameters
 action=$1
 domain=$2
