@@ -5,20 +5,10 @@ Vagrant.require_version ">= 1.8"
 
 require 'yaml'
 
-module Config
-    def Config.load
-        local_config_dir = 'config'
-        config_file = local_config_dir + '/config.yaml'
-
-        config_data = File.exists?(config_file) ? YAML.load_file(config_file) : {}
-        return config_data
-    end
-end
-
-config_data = Config.load
-vm_memory = config_data["vm"]["memory"]
-vm_cpus = config_data["vm"]["cpus"]
-forwarded_ssh_port = config_data["vm"]["forwarded_ssh_port"]
+config_data = YAML.load_file('config/config.yaml')
+vm_memory = config_data['vm']['memory']
+vm_cpus = config_data['vm']['cpus']
+forwarded_ssh_port = config_data['vm']['forwarded_ssh_port']
 hostname = config_data['vm']['hostname']
 ip_address = config_data['vm']['ip_address']
 project_root = config_data['host']['project_root']
