@@ -1,161 +1,135 @@
 #!/bin/bash
-### Set Language
-TEXTDOMAIN=virtualhost
+VERSION="0.2.0"
 
-for i in "$@"
-do
-case $i in
-    -a=*|--action=*)
-    action="${i#*=}"
-    shift # past argument=value
-    ;;
-    -d=*|--domain=*)
-    domain="${i#*=}"
-    shift # past argument=value
-    ;;
-	-D=*|--directory=*)
-    rootDir="${i#*=}"
-    shift # past argument with no value
-    ;;
-	-h=*|--help=*)
-    rootDir="${i#*=}"
-    shift # past argument with no value
-    ;;
-    *)
-          # unknown option
-    ;;
-esac
-done
-
-function printHelp () {
-
-
+function printUsage() {
+	echo "Usage: sudo virtualhost [options]"
+	echo ""
+	echo "All the available virtualhost options are:"
+	echo "  -h, --help        Show this help message and exit"
+	echo "  -v, --version     Show the script version and exit"
+	echo "  -a, --action      Required. The possibilities are: create or delete"
+	echo "  -d, --domain      Required. The domain for the vhost"
+	echo "  -D, --directory   Optional. The name of the folder inside /var/www"
+	echo ""
 	exit 0
 }
 
-### Set default parameters
-action=$1
-domain=$2
-rootDir=$3
-owner=$(who am i | awk '{print $1}')
-#email='webmaster@localhost'
+function printVersion() {
+	echo "virtualhost v${VERSION}"
+	exit 0
+}
+
+while true; do
+    case "$1" in
+		-h|--help )
+		printUsage;
+		shift ;;
+
+		-v|--version )
+		printVersion;
+		shift ;;
+
+		-a|--action )
+		ACTION="$2";
+		shift ;
+		shift ;;
+
+		-d|--domain )
+		DOMAIN="$2"
+		shift ;
+		shift ;;
+
+		-D|--directory )
+		ROOTDIR="$2"
+		shift ;
+		shift ;;
+
+		* )
+		break ;;
+	esac
+done
+
+OWNER=$(who am i | awk '{print $1}')
 sitesEnable='/etc/apache2/sites-enabled/'
 sitesAvailable='/etc/apache2/sites-available/'
 userDir='/var/www/'
-sitesAvailabledomain=$sitesAvailable$domain.conf
-
-### don't modify from here unless you know what you are doing ####
+sitesAvailabledomain=${sitesAvailable}${DOMAIN}.conf
 
 if [ "$(whoami)" != 'root' ]; then
 	echo $"You have no permission to run $0 as non-root user. Use sudo"
 	exit 1;
 fi
 
-if [ "$action" != 'create' ] && [ "$action" != 'delete' ]; then
-		echo $"This should be the command: "
-		echo $"	sudo virtualhost [create | delete] [domain] [optional host_dir]"
-		exit 1;
+if [ "${ACTION}" != 'create' ] && [ "${ACTION}" != 'delete' ]; then
+	printUsage
 fi
 
-while [ "$domain" == "" ]
-do
-	echo -e $"Please provide domain. e.g: example.dev"
-	read domain
-done
-
-if [ "$rootDir" == "" ]; then
-	rootDir=${domain//./}
+if [ "${DOMAIN}" == "" ];then
+	echo -e $"Please provide domain. e.g: example.test"
+	exit 0
 fi
 
-### if root dir starts with '/', don't use /var/www as default starting point
-if [[ "$rootDir" =~ ^/ ]]; then
-	userDir=''
+if [ "${ROOTDIR}" == "" ]; then
+	ROOTDIR=${userDir}${DOMAIN}
+else
+	ROOTDIR=${userDir}${ROOTDIR}
 fi
 
-rootDir=$userDir$rootDir
-
-if [ "$action" == 'create' ]
+if [ "${ACTION}" == 'create' ]
 	then
-		### check if domain already exists
-		if [ -e $sitesAvailabledomain ]; then
+		if [ -e ${sitesAvailabledomain} ]; then
 			echo -e $"This domain already exists.\nPlease Try Another one"
 			exit;
 		fi
-
-		### check if directory exists or not
-		if ! [ -d $rootDir ]; then
-			### create the directory
-			mkdir $rootDir
-			### give permission to root dir
-			chmod 755 $rootDir
-			### write test file in the new domain dir
-			if ! echo "<?php echo phpinfo(); ?>" > $rootDir/phpinfo.php
+		if ! [ -d ${ROOTDIR} ]; then
+			mkdir ${ROOTDIR}
+			chmod 755 ${ROOTDIR}
+			if ! echo "<?php echo phpinfo(); ?>" > ${ROOTDIR}/phpinfo.php
 			then
-				echo $"ERROR: Not able to write in file $rootDir/phpinfo.php. Please check permissions"
+				echo $"ERROR: Not able to write in file ${ROOTDIR}/phpinfo.php. Please check permissions"
 				exit;
 			else
-				echo $"Added content to $rootDir/phpinfo.php"
+				echo $"Added content to ${ROOTDIR}/phpinfo.php"
 			fi
 		fi
-
-		### create virtual host rules file
-		if ! echo "
-<VirtualHost *:80>
-	ServerName $domain
-	ServerAlias $domain
-	DocumentRoot $rootDir
-	<Directory $rootDir>
+		if ! echo "<VirtualHost *:80>
+	ServerName ${DOMAIN}
+	ServerAlias ${DOMAIN}
+	DocumentRoot ${ROOTDIR}
+	<Directory ${ROOTDIR}>
 		Options Indexes FollowSymLinks
 		AllowOverride all
-		Option -MultiViews
 	</Directory>
-	ErrorLog /var/log/apache2/$domain-error.log
-	LogLevel error
-	CustomLog /var/log/apache2/$domain-access.log combined
-</VirtualHost>" > $sitesAvailabledomain
+	ErrorLog /var/log/apache2/${DOMAIN}-error.log
+	LogLevel warn
+	CustomLog /var/log/apache2/${DOMAIN}-access.log combined
+</VirtualHost>" > ${sitesAvailabledomain}
 		then
-			echo -e $"There is an ERROR creating $domain file"
+			echo -e $"There is an ERROR creating ${DOMAIN} file"
 			exit;
 		else
 			echo -e $"\nNew Virtual Host Created\n"
 		fi
-		
-		### chown www-data:wwwdd-data
-		chown -R $owner:$owner $rootDir
-		
-		### enable website
-		a2ensite $domain
-
-		### restart Apache
-		/etc/init.d/apache2 reload
-
-		### show the finished message
-		echo -e $"Complete! \nYou now have a new Virtual Host \nYour new host is: http://$domain \nAnd its located at $rootDir"
+		chown -R ${OWNER}:${OWNER} ${ROOTDIR}
+		a2ensite ${DOMAIN}
+		service apache2 reload
+		echo -e $"Complete! \nYou now have a new Virtual Host \nYour new host is: http://${DOMAIN} \nAnd its located at ${ROOTDIR}"
 		exit;
 	else
-		### check whether domain already exists
-		if ! [ -e $sitesAvailabledomain ]; then
+		if ! [ -e ${sitesAvailabledomain} ]; then
 			echo -e $"This domain does not exist.\nPlease try another one"
 			exit;
 		else
-			### disable website
-			a2dissite $domain
-
-			### restart Apache
-			/etc/init.d/apache2 reload
-
-			### Delete virtual host rules files
-			rm $sitesAvailabledomain
+			a2dissite ${DOMAIN}
+			service apache2 reload
+			rm ${sitesAvailabledomain}
 		fi
-
-		### check if directory exists or not
-		if [ -d $rootDir ]; then
+		if [ -d ${ROOTDIR} ]; then
 			echo -e $"Delete host root directory ? (y/n)"
 			read deldir
 
-			if [ "$deldir" == 'y' -o "$deldir" == 'Y' ]; then
-				### Delete the directory
-				rm -rf $rootDir
+			if [ "${deldir}" == 'y' -o "${deldir}" == 'Y' ]; then
+				rm -rf ${ROOTDIR}
 				echo -e $"Directory deleted"
 			else
 				echo -e $"Host directory conserved"
@@ -163,8 +137,6 @@ if [ "$action" == 'create' ]
 		else
 			echo -e $"Host directory not found. Ignored"
 		fi
-
-		### show the finished message
-		echo -e $"Complete!\nYou just removed Virtual Host $domain"
-		exit 0;
+		echo -e $"Complete!\nYou just removed Virtual Host ${DOMAIN}"
+		exit 0
 fi
