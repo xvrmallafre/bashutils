@@ -84,12 +84,12 @@ if [ "${ACTION}" == 'create' ]
 		if ! [ -d ${ROOTDIR} ]; then
 			mkdir ${ROOTDIR}
 			chmod 755 ${ROOTDIR}
-			if ! echo "<?php echo phpinfo(); ?>" > ${ROOTDIR}/phpinfo.php
+			if ! echo "<h1>Hello World!</h1>" > ${ROOTDIR}/index.html
 			then
-				echo $"ERROR: Not able to write in file ${ROOTDIR}/phpinfo.php. Please check permissions"
+				echo $"ERROR: Not able to write in file ${ROOTDIR}/index.html. Please check permissions"
 				exit;
 			else
-				echo $"Added content to ${ROOTDIR}/phpinfo.php"
+				echo $"Added content to ${ROOTDIR}/index.html"
 			fi
 		fi
 		if ! echo "<VirtualHost *:80>
