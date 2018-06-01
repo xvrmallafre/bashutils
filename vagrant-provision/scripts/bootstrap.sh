@@ -4,6 +4,7 @@
 GITNAME=$1
 GITEMAIL=$2
 GITTEXTEDITOR=$3
+MYSQLROOTPASSWORD=$4
 
 # Script Variables
 PHPMODSDIR='/etc/php/7.1/mods-available'
@@ -85,8 +86,8 @@ sudo phpenmod xdebug
 sudo service apache2 reload
 
 # Installing MySQL
-sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
-sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password ${MYSQLROOTPASSWORD}'
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password ${MYSQLROOTPASSWORD}'
 sudo apt-get install -y mysql-server
 sudo apt-get install -y mysql-client
 
