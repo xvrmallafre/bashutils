@@ -7,11 +7,12 @@ GITTEXTEDITOR=$3
 MYSQLROOTPASSWORD=$4
 
 # Script Variables
-PHPMODSDIR='/etc/php/7.1/mods-available'
 VMHOSTSDIR='/etc/apache2/sites-available'
+PHPMODSDIR='/etc/php/7.1/mods-available'
+HOMEROOT='/root'
 HOMEVAGRANT='/home/vagrant'
-SCRIPTSDIR='/usr/local/bin'
 HOSTSDIR='/vagrant/vhosts'
+SCRIPTSDIR='/usr/local/bin'
 
 # Update
 sudo apt-get update
@@ -66,19 +67,20 @@ sudo apt-get update -y
 sudo apt-get install -y php7.1 libapache2-mod-php7.1 php7.1-cli php7.1-common php7.1-mbstring php7.1-gd php7.1-intl php7.1-xml php7.1-mysql php7.1-mcrypt php7.1-zip php7.1-soap php7.1-curl php-redis php7.1-xsl php7.1-readline php7.1-json php7.1-bz2 php7.1-pgsql php7.1-snmp php-xdebug
 
 # Set up Xdebug
-sudo rm ${PHPMODSDIR}/xdebug.ini
-if [ ! -f ${PHPMODSDIR}/xdebug.ini ];
+XDEBUGFILE="${PHPMODSDIR}/xdebug.ini"
+sudo rm ${XDEBUGFILE}
+if [ ! -f ${XDEBUGFILE} ];
 then
-    sudo touch ${PHPMODSDIR}/xdebug.ini
-    sudo echo "zend_extension=xdebug.so" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.remote_enable = 1" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.remote_port = 9000" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.idekey = PHPSTORM" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.show_error_trace = 1" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.remote_autostart = 0" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.var_display_max_depth = -1" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.var_display_max_children = -1" >> ${PHPMODSDIR}/xdebug.ini
-    sudo echo "xdebug.var_display_max_data = -1" >> ${PHPMODSDIR}/xdebug.ini
+    sudo touch ${XDEBUGFILE}
+    sudo echo "zend_extension=xdebug.so" >> ${XDEBUGFILE}
+    sudo echo "xdebug.remote_enable = 1" >> ${XDEBUGFILE}
+    sudo echo "xdebug.remote_port = 9000" >> ${XDEBUGFILE}
+    sudo echo "xdebug.idekey = PHPSTORM" >> ${XDEBUGFILE}
+    sudo echo "xdebug.show_error_trace = 1" >> ${XDEBUGFILE}
+    sudo echo "xdebug.remote_autostart = 0" >> ${XDEBUGFILE}
+    sudo echo "xdebug.var_display_max_depth = -1" >> ${XDEBUGFILE}
+    sudo echo "xdebug.var_display_max_children = -1" >> ${XDEBUGFILE}
+    sudo echo "xdebug.var_display_max_data = -1" >> ${XDEBUGFILE}
 fi
 sudo phpenmod xdebug
 
@@ -86,10 +88,15 @@ sudo phpenmod xdebug
 sudo service apache2 reload
 
 # Installing MySQL
-sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password ${MYSQLROOTPASSWORD}'
-sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password ${MYSQLROOTPASSWORD}'
+sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password ${MYSQLROOTPASSWORD}"
+sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${MYSQLROOTPASSWORD}"
 sudo apt-get install -y mysql-server
 sudo apt-get install -y mysql-client
+MYCNFFILE="${HOMEROOT}/my.cnf"
+sudo echo "[client]" >> ${MYCNFFILE}
+sudo echo "user=root" >> ${MYCNFFILE}
+sudo echo "password=${MYSQLROOTPASSWORD}" >> ${MYCNFFILE}
+cp ${MYCNFFILE} ${HOMEVAGRANT}
 
 # Installing Nodejs
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
@@ -97,7 +104,6 @@ sudo apt-get install -y build-essential nodejs
 
 # Installing Composer
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php -r "if (hash_file('SHA384', 'composer-setup.php') === '544e09ee996cdf60ece3804abc52599c22b1f40f4323403c44d44fdfdd586475ca9813a858088ffbc1f233e9b180f061') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
 php composer-setup.php --install-dir=${SCRIPTSDIR} --filename=composer
 php -r "unlink('composer-setup.php');"
 sudo chown vagrant.vagrant ${SCRIPTSDIR}/composer
@@ -107,7 +113,9 @@ sudo composer self-update -q
 if [ -d ${HOSTSDIR} ];
 then
     for fn in `cd ${HOSTSDIR} && ls *.conf`; do
-        sudo a2dissite ${fn}
+        if [ -f ${fn} ]; then
+            sudo a2dissite ${fn}
+        fi
         sudo cp ${fn} ${VMHOSTSDIR}
         sudo a2ensite ${fn}
         sudo service apache2 restart

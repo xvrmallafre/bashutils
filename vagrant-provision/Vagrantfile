@@ -16,7 +16,8 @@ project_root = config_data['host']['project_root']
 shell_script_args = [
     config_data['git']['name'],
     config_data['git']['email'],
-    config_data['git']['editor']
+    config_data['git']['editor'],
+    config_data['mysql']['root_password']
 ]
 
 Vagrant.configure("2") do |config|
