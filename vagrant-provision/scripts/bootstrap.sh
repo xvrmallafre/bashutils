@@ -113,10 +113,10 @@ sudo composer self-update -q
 if [ -d ${HOSTSDIR} ];
 then
     for fn in `cd ${HOSTSDIR} && ls *.conf`; do
-        if [ -f ${fn} ]; then
+        if [ -f ${VMHOSTSDIR}/${fn} ]; then
             sudo a2dissite ${fn}
         fi
-        sudo cp ${fn} ${VMHOSTSDIR}
+        sudo cp ${HOSTSDIR}/${fn} ${VMHOSTSDIR}
         sudo a2ensite ${fn}
         sudo service apache2 restart
     done
