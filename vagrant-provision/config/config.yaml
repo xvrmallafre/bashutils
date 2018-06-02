@@ -1,4 +1,4 @@
-# To apply changes use `vagrant reload`
+# para aplicar cambios en la VM `vagrant reload`
 vm:
     memory: 4096
     cpus: 2
@@ -10,10 +10,11 @@ host:
     project_root: "./project"
 
 mysql:
+    # Este valor sólo se usará para el primer provision
     root_password: "root"
 
 git:
     name: "John Doe"
     email: "john.doe@example.com"
-    # editor should be a valid text editor (vim, nano...)
+    # El editor sólo puede ser uno válido e instalado en el sistema (vim, nano...)
     editor: "vim"
