@@ -92,11 +92,12 @@ sudo debconf-set-selections <<< "mysql-server mysql-server/root_password passwor
 sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${MYSQLROOTPASSWORD}"
 sudo apt-get install -y mysql-server
 sudo apt-get install -y mysql-client
-MYCNFFILE="${HOMEROOT}/my.cnf"
+MYCNFFILE="${HOMEROOT}/.my.cnf"
 sudo echo "[client]" >> ${MYCNFFILE}
 sudo echo "user=root" >> ${MYCNFFILE}
 sudo echo "password=${MYSQLROOTPASSWORD}" >> ${MYCNFFILE}
 cp ${MYCNFFILE} ${HOMEVAGRANT}
+sudo chown vagrant.vagrant ${HOMEVAGRANT}/.my.cnf
 
 # Installing Nodejs
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -

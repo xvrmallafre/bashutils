@@ -4,7 +4,7 @@ vm:
     cpus: 2
     ip_address: "192.168.30.102"
     forwarded_ssh_port: 3102
-    hostname: "mywebsite.localhost"
+    hostname: "mywebsite.test"
 
 host:
     project_root: "./project"
