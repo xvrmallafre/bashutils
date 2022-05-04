@@ -1,0 +1,41 @@
+#!/bin/bash
+
+preconfigure_and_run_php () {
+    # set current php version in variable
+    current_php=$(php --version | head -n 1 | cut -d " " -f 2 | cut  -c-3)
+    # set mods available path in variable
+    mods_available_path="/etc/php/${current_php}/mods-available"
+    # set xdebug.ini path in variable
+    xdebug_ini_path="${mods_available_path}/xdebug.ini"
+    # set xdebug.ini template path
+    #xdebug_ini_template_path="$HOME/xdebug.ini.template"
+    # set variable with WSL ip found in /etc/resolv.conf
+    #wsl_ip=$(tail -n 1 /etc/resolv.conf | head -n 4 | cut -d " " -f 2 | cut  -c-12)
+
+    # stop current_php php-fpm with sudo service
+    sudo service php${current_php}-fpm stop
+
+    # if xdebug_ini_path exists, delete it with sudo
+    if [ -f "${xdebug_ini_path}" ]; then
+        sudo rm "${xdebug_ini_path}"
+    fi
+
+    # copy xdebug.ini template to mods-available with sudo
+    #sudo cp "${xdebug_ini_template_path}" "${xdebug_ini_path}"
+
+    # replace %IP% with wsl ip in xdebug.ini
+    #sudo sed -i "s/%IP%/${wsl_ip}/g" "${xdebug_ini_path}"
+
+    # enable xdebug.ini with phpenmod
+    #sudo phpenmod -v ${current_php} xdebug
+
+    # start current_php php-fpm with sudo and service
+    sudo service php${current_php}-fpm start
+}
+
+preconfigure_and_run_php
+sudo service nginx start
+sudo service mysql start
+sudo service elasticsearch start
+sudo service redis-server start
+#sudo service rabbitmq-server start
