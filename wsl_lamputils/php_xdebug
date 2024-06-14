@@ -21,7 +21,8 @@ function enableXdebugPhp() {
     # set xdebug.ini template path
     xdebug_ini_template_path="$HOME/xdebug.ini.template"
     # set variable with WSL ip found in /etc/resolv.conf
-    wsl_ip=$(tail -n 1 /etc/resolv.conf | head -n 4 | cut -d " " -f 2 | cut  -c-12)
+    #wsl_ip=$(tail -n 1 /etc/resolv.conf | head -n 4 | cut -d " " -f 2 | cut  -c-16)
+    wsl_ip=$(netstat -nr | grep '^0\.0\.0\.0' | awk '{print $2}')
 
     # stop current_php php-fpm with sudo service
     sudo service php${current_php}-fpm stop
