@@ -1,41 +1,107 @@
 #!/bin/bash
 
-current_php=$(php --version | head -n 1 | cut -d " " -f 2 | cut  -c-3)
+# Configuración predeterminada
+current_php="8.3"
+TEMPLATE="phpstorm"
+
+# Plantillas centralizadas
+XDEBUG29_CONTENT='zend_extension="xdebug.so"
+[xdebug]
+xdebug.remote_enable=1
+xdebug.remote_autostart=1
+xdebug.remote_port=9000
+xdebug.remote_connect_back=0
+xdebug.remote_log="/var/log/xdebug.log"
+xdebug.remote_host=%IP%
+xdebug.idekey="PHPSTORM"
+xdebug.remote_handler=dbgp
+xdebug.remote_mode=req'
+
+XDEBUG34_CONTENT='zend_extension="xdebug.so"
+[xdebug]
+xdebug.mode=debug,develop
+xdebug.start_with_request=yes
+xdebug.client_port=9003
+xdebug.discover_client_host=0
+xdebug.log="/var/log/xdebug.log"
+#xdebug.client_host=%IP%
+xdebug.client_host=host.docker.internal
+xdebug.idekey="PHPSTORM"
+xdebug.log_level=0
+xdebug.var_display_max_depth=10'
+
+XDEBUG_VSCODE_CONTENT='zend_extension="xdebug.so"
+[xdebug]
+xdebug.mode=debug,develop
+xdebug.start_with_request=yes
+xdebug.client_port=9003
+xdebug.log="/var/log/xdebug.log"
+xdebug.client_host=localhost
+xdebug.idekey="PHPSTORM"
+xdebug.log_level=0
+xdebug.var_display_max_depth=10'
 
 function printUsage() {
-	echo "Usage: sudo php_xdebug [options]"
-	echo ""
-	echo "All the available php_xdebug options are:"
-	echo "  -h, --help        Show this help message and exit"
-	echo "  -e, --enable      Enables xdebug on the actual php version"
-	echo "  -d, --disable     Enables xdebug on the actual php version"
-	echo ""
-	exit 0
+    echo "Usage: sudo php_xdebug [options]"
+    echo ""
+    echo "All the available php_xdebug options are:"
+    echo "  -h, --help        Show this help message and exit"
+    echo "  -e, --enable      Enables xdebug on the specified php version"
+    echo "  -d, --disable     Disables xdebug on the specified php version"
+    echo "  -s, --status      Show if xdebug is enabled or not"
+    echo "  -v, --version     Specifies PHP version (e.g. 7.1, 8.3). Default: ${current_php}"
+    echo "  -t, --template    Specifies IDE template (phpstorm, vscode). Default: phpstorm"
+    echo ""
+    exit 0
+}
+
+function getXdebugStatus() {
+    status=$(php${current_php} -m 2>/dev/null | grep -i xdebug || echo "")
+    if [ -n "$status" ]; then
+        echo "enabled"
+    else
+        echo "disabled"
+    fi
+}
+
+function version_ge() {
+    # Compare versions using sort -V
+    [ "$1" = "$(echo -e "$1\n$2" | sort -V | tail -n1)" ]
 }
 
 function enableXdebugPhp() {
+    # Validar compatibilidad de VSCode
+    if [[ "${TEMPLATE}" == "vscode" ]]; then
+        if ! version_ge "${current_php}" "8.0"; then
+            echo "Error: La plantilla vscode solo es compatible con PHP >= 8.0 (Xdebug 3+)"
+            exit 1
+        fi
+    fi
+
     # set mods available path in variable
     mods_available_path="/etc/php/${current_php}/mods-available"
     # set xdebug.ini path in variable
     xdebug_ini_path="${mods_available_path}/xdebug.ini"
-    # set xdebug.ini template path
-    xdebug_ini_template_path="$HOME/xdebug.ini.template"
+    
+    # Determinar el contenido según la versión de PHP y la plantilla
+    if [[ "${TEMPLATE}" == "vscode" ]]; then
+        content="${XDEBUG_VSCODE_CONTENT}"
+    elif version_ge "${current_php}" "8.0"; then
+        content="${XDEBUG34_CONTENT}"
+    else
+        content="${XDEBUG29_CONTENT}"
+    fi
+
     # set variable with WSL ip found in /etc/resolv.conf
-    #wsl_ip=$(tail -n 1 /etc/resolv.conf | head -n 4 | cut -d " " -f 2 | cut  -c-16)
     wsl_ip=$(netstat -nr | grep '^0\.0\.0\.0' | awk '{print $2}')
 
     # stop current_php php-fpm with sudo service
     sudo service php${current_php}-fpm stop
 
-    # if xdebug_ini_path exists, delete it with sudo
-    if [ -f "${xdebug_ini_path}" ]; then
-        sudo rm "${xdebug_ini_path}"
-    fi
+    # Write content to xdebug.ini
+    echo "${content}" | sudo tee "${xdebug_ini_path}" > /dev/null
 
-    # copy xdebug.ini template to mods-available with sudo
-    sudo cp "${xdebug_ini_template_path}" "${xdebug_ini_path}"
-
-    # replace %IP% with wsl ip in xdebug.ini
+    # replace %IP% with wsl ip in xdebug.ini if present
     sudo sed -i "s/%IP%/${wsl_ip}/g" "${xdebug_ini_path}"
 
     # enable xdebug.ini with phpenmod
@@ -43,6 +109,8 @@ function enableXdebugPhp() {
 
     # start current_php php-fpm with sudo and service
     sudo service php${current_php}-fpm start
+    
+    echo "Xdebug enabled for PHP ${current_php} using ${TEMPLATE} template"
 }
 
 function disableXdebugPhp() {
@@ -61,41 +129,67 @@ function disableXdebugPhp() {
 
     # start current_php php-fpm with sudo and service
     sudo service php${current_php}-fpm start
+    
+    echo "Xdebug disabled for PHP ${current_php}"
 }
 
 while true; do
     case "$1" in
-		-h|--help )
-		printUsage;
-		shift ;;
+        -h|--help )
+        printUsage;
+        shift ;;
 
-		-e|--enable )
-		ENABLE="1";
-		shift ;
-		shift ;;
+        -e|--enable )
+        ENABLE="1";
+        shift ;;
 
-		-d|--disable )
-		DISABLE="1"
-		shift ;
-		shift ;;
+        -d|--disable )
+        DISABLE="1"
+        shift ;;
 
-		* )
-		break ;;
-	esac
+        -s|--status )
+        SHOW_STATUS="1"
+        shift ;;
+        
+        -v|--version )
+        current_php="$2"
+        shift 2 ;;
+
+        -t|--template )
+        TEMPLATE="$2"
+        shift 2 ;;
+
+        * )
+        break ;;
+    esac
 done
 
-if [ "${ENABLE}" != "1" ] && [ "${DISABLE}" != '1' ]; then
-	echo "Use only one of the following options: -e or -d"
-	exit 1;
+# Verificar la versión de PHP especificada está instalada
+if ! command -v php${current_php} &> /dev/null; then
+    echo "Error: PHP ${current_php} no está instalado o no está disponible"
+    exit 1
 fi
 
-if [ "$(php -m | grep xdebug)" != "" ] && [ "${ENABLE}" == "1" ]; then
-    echo "xdebug is already enabled"
+if [ "${SHOW_STATUS}" == "1" ]; then
+    echo "Xdebug status for PHP ${current_php}: $(getXdebugStatus)"
+    exit 0
+fi
+
+if [ "${ENABLE}" != "1" ] && [ "${DISABLE}" != '1' ]; then
+    echo "Use one of the following options: -e, -d or -s"
     exit 1;
 fi
 
-if [ "$(php -m | grep xdebug)" == "" ] && [ "${DISABLE}" == "1" ]; then
-    echo "xdebug is already disabled"
+# Comprobar si xdebug está activado para la versión de PHP especificada
+XDEBUG_STATUS=$(getXdebugStatus)
+
+if [ "${XDEBUG_STATUS}" == "enabled" ] && [ "${ENABLE}" == "1" ]; then
+    echo "xdebug ya está activado para PHP ${current_php}"
+    exit 1;
+fi
+
+if [ "${XDEBUG_STATUS}" == "disabled" ] && [ "${DISABLE}" == "1" ]; then
+    echo "xdebug ya está desactivado para PHP ${current_php}"
     exit 1;
 fi
 
