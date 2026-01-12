@@ -17,7 +17,7 @@ xdebug.idekey="PHPSTORM"
 xdebug.remote_handler=dbgp
 xdebug.remote_mode=req'
 
-XDEBUG34_CONTENT='zend_extension="xdebug.so"
+XDEBUG3_PHPSTORM='zend_extension="xdebug.so"
 [xdebug]
 xdebug.mode=debug,develop
 xdebug.start_with_request=yes
@@ -30,7 +30,7 @@ xdebug.idekey="PHPSTORM"
 xdebug.log_level=0
 xdebug.var_display_max_depth=10'
 
-XDEBUG_VSCODE_CONTENT='zend_extension="xdebug.so"
+XDEBUG3_VSCODE='zend_extension="xdebug.so"
 [xdebug]
 xdebug.mode=debug,develop
 xdebug.start_with_request=yes
@@ -72,8 +72,8 @@ function version_ge() {
 function enableXdebugPhp() {
     # Validar compatibilidad de VSCode
     if [[ "${TEMPLATE}" == "vscode" ]]; then
-        if ! version_ge "${current_php}" "8.0"; then
-            echo "Error: La plantilla vscode solo es compatible con PHP >= 8.0 (Xdebug 3+)"
+        if ! version_ge "${current_php}" "7.4"; then
+            echo "Error: La plantilla vscode solo es compatible con PHP >= 7.4 (Xdebug 3+)"
             exit 1
         fi
     fi
@@ -85,9 +85,9 @@ function enableXdebugPhp() {
     
     # Determinar el contenido según la versión de PHP y la plantilla
     if [[ "${TEMPLATE}" == "vscode" ]]; then
-        content="${XDEBUG_VSCODE_CONTENT}"
-    elif version_ge "${current_php}" "8.0"; then
-        content="${XDEBUG34_CONTENT}"
+        content="${XDEBUG3_VSCODE}"
+    elif version_ge "${current_php}" "7.4"; then
+        content="${XDEBUG3_PHPSTORM}"
     else
         content="${XDEBUG29_CONTENT}"
     fi
